@@ -1,0 +1,53 @@
+version: '3'
+
+services:
+  postgres:
+    restart: always
+    image: postgres:16.0
+    container_name: nac_db
+    env_file: env_db
+    volumes:
+      - db:/var/lib/postgresql/data
+
+  nginx:
+    restart: always
+    build: ./nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - static_volume:/static/
+      - ./nginx/ssl/:/etc/ssl/:ro
+    depends_on:
+      - nac_web
+
+  nac_web:
+    restart: always
+    container_name: nac_web
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    env_file: env_web
+    depends_on:
+      - postgres
+    command:
+      - /bin/bash
+      - -c
+      - |
+        mkdir -p static
+        python manage.py collectstatic --no-input
+        python manage.py makemigrations
+        python manage.py migrate
+        python manage.py ensure_adminuser --no-input
+        gunicorn noughts_and_crosses.wsgi:application --bind 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - static_volume:/code/static
+      - logs:/code/logs
+
+volumes:
+  db:
+    driver: local
+  static_volume:
+  logs:

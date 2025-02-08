@@ -1,0 +1,29 @@
+version: '3'
+
+services:
+  nac_web:
+    container_name: nac_web
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    environment:
+      DEBUG: "True"
+      APP_PORT: 8000
+      DJANGO_SUPERUSER_USERNAME: "admin"
+      DJANGO_SUPERUSER_PASSWORD: "NoughtsAndCr0ss3s!"
+      DJANGO_SUPERUSER_EMAIL: "jingalls14@gmail.com"
+      DJANGO_SETTINGS_MODULE: "noughts_and_crosses.settings.development"
+    command:
+      - /bin/bash
+      - -c
+      - |
+        python manage.py makemigrations
+        python manage.py migrate
+        python manage.py ensure_adminuser --no-input
+        python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+#    volumes:
+#      - src/:/code
+
+#volumes:
