@@ -6,7 +6,7 @@ from rest_framework import serializers
 class GameSerializer(serializers.ModelSerializer):
     class Meta:
         model = Game
-        fields = ['id', 'player', 'winner']
+        fields = ['id', 'player', 'state', 'winner']
 
 
 class UserSerializer(serializers.ModelSerializer):

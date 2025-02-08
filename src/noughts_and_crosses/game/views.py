@@ -30,6 +30,7 @@ class GameViewSet(viewsets.ModelViewSet):
         user = request.user
         queryset = user.game_set.all()
         game = get_object_or_404(queryset, pk=pk)
+        game.calculate_winner()
         serializer = GameSerializer(game)
         return Response(serializer.data)
 
@@ -56,6 +57,10 @@ class MoveViewSet(viewsets.ModelViewSet):
 
     def create(self, request, game_id=None):
         game = get_object_or_404(Game, pk=game_id)
+        if game.winner is not None:
+            serializer = GameSerializer(game)
+            return Response({"message": "Game is Over", "game": serializer.data})
+
         exists = Move.objects.filter(game=game, x=request.data['x'], y=request.data['y']).exists()
         if exists:
             return Response({'error': 'Move already exists'}, status=status.HTTP_400_BAD_REQUEST)
@@ -66,6 +71,7 @@ class MoveViewSet(viewsets.ModelViewSet):
         move.x = request.data.get("x")
         move.y = request.data.get("y")
         move.save()
+        game.update_state(move.x,  move.y, "X")
 
         # Generate the computers random move
         x = random.randint(0, 2)
@@ -80,6 +86,16 @@ class MoveViewSet(viewsets.ModelViewSet):
         comp_move.x = x
         comp_move.y = y
         comp_move.save()
+        game.update_state(comp_move.x, comp_move.y, "O")
+
+        winner = game.calculate_winner()
+        if winner is not None:
+            if game.winner == "TRUE":
+                return Response({"message": "Congratulations, you have won the game", "board": game.state})
+            elif game.winner == "FALSE":
+                return Response({"message": "Sorry, you have lost the game", "board": game.state})
+            else:
+                return Response({"message": "Game Over, DRAW", "board": game.state})
 
         serializer = MoveSerializer(comp_move)
         return Response(serializer.data)
